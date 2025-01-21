@@ -1,0 +1,27 @@
+{
+  "name": "notion-discord-notifs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "dev": "tsup src/index.ts --onSuccess \"node dist/index.js\""
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.15",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.4.1",
+    "effect": "^3.12.2",
+    "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@9.15.3+sha512.1f79bc245a66eb0b07c5d4d83131240774642caaa86ef7d0434ab47c0d16f66b04e21e0c086eb61e62c77efc4d7f7ec071afad3796af64892fae66509173893a"
+}
