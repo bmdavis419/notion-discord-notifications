@@ -1,11 +1,14 @@
 import type { Client } from "discord.js";
-import { Client as DiscordClient, Events, GatewayIntentBits } from "discord.js";
+import { Client as DiscordClient, Events, IntentsBitField } from "discord.js";
 import { Effect } from "effect";
 import { get_env_variable } from "./env";
 
 export const create_discord_client = Effect.promise<Client<true>>(() => {
   const client = new DiscordClient({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+    intents: [
+      IntentsBitField.Flags.Guilds,
+      IntentsBitField.Flags.GuildMessages,
+    ],
   });
 
   const discord_token = Effect.runSync(get_env_variable("DISCORD_TOKEN"));

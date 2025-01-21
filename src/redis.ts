@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { createClient } from "redis";
+import type { RedisClientType } from "redis";
 import { get_env_variable } from "./env";
 
 type VideoSchema = {
@@ -8,14 +9,12 @@ type VideoSchema = {
 
 const ALL_VIDEOS_ID = "videos:all";
 
-type RedisClient = Effect.Effect.Success<typeof create_redis_client>;
-
 export const create_redis_client = Effect.promise(async () => {
   const redis_url = Effect.runSync(get_env_variable("REDIS_URL"));
 
   const client = createClient({
     url: redis_url,
-  });
+  }) as RedisClientType;
 
   await client.connect();
 
@@ -23,7 +22,7 @@ export const create_redis_client = Effect.promise(async () => {
 });
 
 export const save_video = (
-  client: RedisClient,
+  client: RedisClientType,
   video_id: string,
   video_data: VideoSchema
 ) =>
@@ -32,7 +31,7 @@ export const save_video = (
     console.log(`Saved to redis: ${video_id}`);
   });
 
-export const get_saved_published_videos = (client: RedisClient) =>
+export const get_saved_published_videos = (client: RedisClientType) =>
   Effect.promise(async () => {
     const all_videos = await client.hGetAll(ALL_VIDEOS_ID);
 
@@ -47,13 +46,13 @@ export const get_saved_published_videos = (client: RedisClient) =>
     return videos;
   });
 
-export const clear_redis_db = (client: RedisClient) =>
+export const clear_redis_db = (client: RedisClientType) =>
   Effect.promise(async () => {
     await client.flushAll();
     console.log("Redis database cleared");
   });
 
-export const save_dummy_videos = (client: RedisClient) =>
+export const save_dummy_videos = (client: RedisClientType) =>
   Effect.promise(async () => {
     const videos: Record<string, VideoSchema> = {
       "video:1": {
