@@ -10,15 +10,15 @@
   },
   "dependencies": {
     "@notionhq/client": "^2.2.15",
-    "discord.js": "^14.14.1",
-    "dotenv": "^16.4.1",
-    "effect": "^3.12.2",
+    "discord.js": "^14.17.3",
+    "dotenv": "^16.4.7",
+    "effect": "^3.12.5",
     "redis": "^4.7.0"
   },
   "devDependencies": {
-    "@types/node": "^20.11.16",
-    "tsup": "^8.0.1",
-    "typescript": "^5.3.3"
+    "@types/node": "^20.17.14",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3"
   },
   "keywords": [],
   "author": "",
