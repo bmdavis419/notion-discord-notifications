@@ -2,6 +2,7 @@
   "name": "notion-discord-notifs",
   "version": "1.0.0",
   "description": "",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsup src/index.ts",
@@ -9,10 +10,12 @@
     "dev": "tsup src/index.ts --onSuccess \"node dist/index.js\""
   },
   "dependencies": {
+    "@effect/platform": "^0.76.0",
+    "@effect/platform-node": "^0.72.0",
     "@notionhq/client": "^2.2.15",
     "discord.js": "^14.17.3",
     "dotenv": "^16.4.7",
-    "effect": "^3.12.5",
+    "effect": "^3.12.11",
     "redis": "^4.7.0"
   },
   "devDependencies": {
