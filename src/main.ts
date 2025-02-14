@@ -1,4 +1,4 @@
-import { Config, Effect, Predicate } from "effect";
+import { Config, Duration, Effect, Predicate, Schedule } from "effect";
 import * as Notion from "./notion.js";
 import * as Redis from "./redis.js";
 import * as Discord from "./discord.js";
@@ -25,4 +25,7 @@ export const main = Effect.gen(function* () {
       );
     }
   }
-}).pipe(Effect.withLogSpan("main"));
+}).pipe(
+  Effect.repeat(Schedule.spaced(Duration.seconds(5))),
+  Effect.withLogSpan("main")
+);
