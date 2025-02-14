@@ -18,7 +18,7 @@ export const make = (options?: Parameters<typeof createClient>[0]) =>
     const client = yield* Effect.acquireRelease(
       Effect.tryPromise({
         try: () => createClient(options).connect(),
-        catch: (e) => new RedisError({ cause: e }),
+        catch: (e) => new RedisError({ cause: e, message: "Error connecting" }),
       }),
       (client) => Effect.promise(() => client.quit())
     );
@@ -73,7 +73,7 @@ export const saveVideo = (id: string, data: VideoData) =>
     const encodedData = yield* Schema.encode(VideoData)(data);
     yield* redis.use((client) => client.hSet("videos", id, encodedData));
     yield* Effect.logInfo(`Saved to redis: ${id}`);
-  }).pipe(Effect.withLogSpan("saveVideo"));
+  }).pipe(Effect.withLogSpan("saveVideo"), Effect.annotateLogs("foo", "bar"));
 
 export const getPublishedSavedVideos = Effect.gen(function* () {
   const redis = yield* Redis;

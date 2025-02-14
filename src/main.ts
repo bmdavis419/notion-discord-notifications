@@ -7,8 +7,15 @@ export const main = Effect.gen(function* () {
   const notionDbId = yield* Config.string("NOTION_DATABASE_ID");
   const discordChannelId = yield* Config.string("DISCORD_CHANNEL_ID");
 
-  const notionVideos = yield* Notion.getPublished(notionDbId);
-  const redisVideos = yield* Redis.getPublishedSavedVideos;
+  const { notionVideos, redisVideos } = yield* Effect.all(
+    {
+      notionVideos: Notion.getPublished(notionDbId),
+      redisVideos: Redis.getPublishedSavedVideos,
+    },
+    {
+      concurrency: "unbounded",
+    }
+  );
 
   for (const video of notionVideos.results) {
     const id = video.id;
@@ -18,10 +25,18 @@ export const main = Effect.gen(function* () {
       yield* Effect.logInfo(`Video ${id} already in DB`);
     } else {
       yield* Effect.logInfo(`Video ${id} not in DB`);
-      yield* Redis.saveVideo(id, { title });
-      yield* Discord.sendMessage(
-        discordChannelId,
-        `VIDEO WAS JUST PUBLISHED: ${title}`
+
+      yield* Effect.all(
+        [
+          Redis.saveVideo(id, { title }),
+          Discord.sendMessage(
+            discordChannelId,
+            `VIDEO WAS JUST PUBLISHED: ${title}`
+          ),
+        ],
+        {
+          concurrency: "unbounded",
+        }
       );
     }
   }
