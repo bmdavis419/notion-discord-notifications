@@ -1,43 +1,112 @@
-import type { Client } from "@notionhq/client";
+import { Config, Context, Data, Effect, Layer, Schema } from "effect";
 import { Client as NotionClient } from "@notionhq/client";
-import { QueryDatabaseResponse } from "@notionhq/client/build/src/api-endpoints";
-import { Effect } from "effect";
-import { get_env_variable } from "./env";
 
-export const create_notion_client = Effect.gen(function* () {
-  const api_key = Effect.runSync(get_env_variable("NOTION_API_KEY"));
+export class NotionError extends Data.TaggedError("NotionError")<{
+  cause?: unknown;
+  message?: string;
+}> {}
 
-  return new NotionClient({
-    auth: api_key,
-  });
-});
+interface NotionImpl {
+  use: <T>(
+    fn: (client: NotionClient) => T
+  ) => Effect.Effect<Awaited<T>, NotionError, never>;
+}
+export class Notion extends Context.Tag("Notion")<Notion, NotionImpl>() {}
 
-// TODO: error handling
-export function get_notion_published(
-  client: Client,
-  db_id: string
-): Effect.Effect<QueryDatabaseResponse> {
-  const cut_off_date = Effect.runSync(get_env_variable("CUT_OFF_DATE"));
+type ConstructorArgs<T extends new (...args: any) => any> = T extends new (
+  ...args: infer A
+) => infer _R
+  ? A
+  : never;
 
-  return Effect.promise(async () => {
-    return client.databases.query({
-      database_id: db_id,
-      filter: {
-        and: [
-          {
-            property: "Status",
-            status: {
-              equals: "Published",
-            },
-          },
-          {
-            property: "Release Date",
-            date: {
-              on_or_after: cut_off_date,
-            },
-          },
-        ],
-      },
+export const make = (options?: ConstructorArgs<typeof NotionClient>[0]) =>
+  Effect.gen(function* () {
+    const client = yield* Effect.try({
+      try: () => new NotionClient(options),
+      catch: (e) => new NotionError({ cause: e }),
+    });
+    return Notion.of({
+      use: (fn) =>
+        Effect.gen(function* () {
+          const result = yield* Effect.try({
+            try: () => fn(client),
+            catch: (e) =>
+              new NotionError({
+                cause: e,
+                message: "Syncronous error in `Notion.use`",
+              }),
+          });
+          if (result instanceof Promise) {
+            return yield* Effect.tryPromise({
+              try: () => result,
+              catch: (e) =>
+                new NotionError({
+                  cause: e,
+                  message: "Asyncronous error in `Notion.use`",
+                }),
+            });
+          } else {
+            return result;
+          }
+        }),
     });
   });
-}
+
+export const layer = (options?: ConstructorArgs<typeof NotionClient>[0]) =>
+  Layer.scoped(Notion, make(options));
+
+export const fromEnv = Layer.scoped(
+  Notion,
+  Effect.gen(function* () {
+    const auth = yield* Config.string("NOTION_API_KEY");
+    return yield* make({ auth });
+  })
+);
+
+const NotionVideoDatabaseResponse = Schema.Struct({
+  results: Schema.Array(
+    Schema.Struct({
+      id: Schema.String,
+      properties: Schema.Struct({
+        Title: Schema.Struct({
+          title: Schema.Array(
+            Schema.Struct({
+              plain_text: Schema.String,
+            })
+          ),
+        }),
+      }),
+    })
+  ),
+});
+
+export const getPublished = (dbId: string) =>
+  Effect.gen(function* () {
+    const notion = yield* Notion;
+    const cutOffDate = yield* Config.string("CUT_OFF_DATE");
+    const rawResponse = yield* notion.use((client) =>
+      client.databases.query({
+        database_id: dbId,
+        filter: {
+          and: [
+            {
+              property: "Status",
+              status: {
+                equals: "Published",
+              },
+            },
+            {
+              property: "Release Date",
+              date: {
+                on_or_after: cutOffDate,
+              },
+            },
+          ],
+        },
+      })
+    );
+    const parsedResponse = yield* Schema.decodeUnknown(
+      NotionVideoDatabaseResponse
+    )(rawResponse);
+    return parsedResponse;
+  }).pipe(Effect.withLogSpan("getPublished"));
